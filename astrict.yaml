@@ -2,9 +2,11 @@ version: 1
 services:
   web:
     kind: web
-    image: docker.io/traefik/whoami@sha256:c899811bc4a1f63a1273c612e15f1bea6514a19c7b08143dbbdef3e8f882c38d
+    image: traefik/whoami@sha256:4f90b33ddca9c4d4f06527070d6e503b16d71016edea036842be2a84e60c91cb
     command:
-    - /missing-executable
+    - /whoami
+    - --port=8080
     port: 8080
     routes:
     - https://whoami.astrict.app
+    public: true

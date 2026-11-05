@@ -2,8 +2,40 @@ version: 1
 services:
   web:
     kind: web
-    image: traefik/whoami@sha256:4f90b33ddca9c4d4f06527070d6e503b16d71016edea036842be2a84e60c91cb
-    command: [/whoami, --port=8080]
-    port: 8080
+    build: ./api
+    health: /
     routes:
-      - https://whoami.astrict.app
+    - https://whoami.astrict.app/api
+  jobs:
+    kind: worker
+    from: web
+    command:
+    - sh
+    - -c
+    - while true; do echo worker alive; sleep 30; done
+  report:
+    kind: cron
+    from: web
+    schedule: '*/2 * * * *'
+    timeout: 5m
+    command:
+    - sh
+    - -c
+    - echo report ran at $(date -u +%FT%TZ)
+  site:
+    kind: static
+    build:
+      context: web
+      command: npm run build
+      output: out
+    routes:
+    - https://whoami.astrict.app
+    public: true
+  app:
+    kind: static
+    build:
+      context: app
+      command: npm run build
+      output: dist
+    routes:
+    - https://whoami.astrict.app/app

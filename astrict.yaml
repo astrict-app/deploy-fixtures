@@ -1,9 +1,46 @@
 version: 1
+
 services:
+  # Built from ./api/Dockerfile on Astrict CI.
   web:
     kind: web
-    image: traefik/whoami@sha256:4f90b33ddca9c4d4f06527070d6e503b16d71016edea036842be2a84e60c91cb
-    command: [/whoami, --port=8080]
+    build: ./api
     port: 8080
+    health: /
+    routes:
+      - https://whoami.astrict.app/api
+
+  # Same image as web.
+  jobs:
+    kind: worker
+    from: web
+    command: [sh, -c, "while true; do echo worker alive; sleep 30; done"]
+
+  # Same image as web; every two minutes so the gate sees it run.
+  report:
+    kind: cron
+    from: web
+    schedule: "*/2 * * * *"
+    timeout: 5m
+    command: [sh, -c, "echo report ran at $(date -u +%FT%TZ)"]
+
+  # A normal website: has 404.html, so unknown pages answer 404.
+  site:
+    kind: static
+    build:
+      context: web
+      command: npm run build
+      output: out
     routes:
       - https://whoami.astrict.app
+    public: true
+
+  # A single-page app under /app: no 404.html, so pages fall back to index.html.
+  app:
+    kind: static
+    build:
+      context: app
+      command: npm run build
+      output: dist
+    routes:
+      - https://whoami.astrict.app/app
